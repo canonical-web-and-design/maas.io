@@ -6,10 +6,12 @@ import flask
 import math
 import talisker.requests
 
-from canonicalwebteam.discourse_docs import (
-    DiscourseDocs,
-    DocParser,
+from canonicalwebteam.discourse import (
     DiscourseAPI,
+    DocParser,
+    Docs,
+    Tutorials,
+    TutorialParser,
 )
 from canonicalwebteam.flask_base.app import FlaskBase
 from canonicalwebteam.templatefinder import TemplateFinder
@@ -31,23 +33,19 @@ app.add_url_rule("/", view_func=template_finder_view)
 app.add_url_rule("/<path:subpath>", view_func=template_finder_view)
 
 session = talisker.requests.get_session()
-docs_discourse_api = DiscourseAPI(
-    base_url="https://discourse.maas.io/", session=session
-)
-doc_parser = DocParser(
-    api=docs_discourse_api,
-    index_topic_id=25,
-    url_prefix="/docs",
-)
-if app.debug:
-    doc_parser.api.session.adapters["https://"].timeout = 99
-discourse_docs = DiscourseDocs(
-    parser=doc_parser,
+
+Docs(
+    parser=DocParser(
+        api=DiscourseAPI(
+            base_url="https://discourse.maas.io",
+            session=session,
+        ),
+        index_topic_id=4315,
+        url_prefix="/docs",
+    ),
     document_template="docs/document.html",
     url_prefix="/docs",
-)
-discourse_docs.init_app(app)
-
+).init_app(app)
 
 # Search
 app.add_url_rule(
@@ -79,30 +77,16 @@ def utility_processor():
     return {"image": image_template}
 
 
-@app.route("/docs/api")
-def api():
-    """
-    Show the static api page
-    """
-
-    doc_parser.parse()
-    return flask.render_template(
-        "docs/api.html", navigation=doc_parser.navigation
-    )
-
-
 url_prefix = "/tutorials"
-tutorials_discourse_api = DiscourseAPI(
-    base_url="https://discourse.maas.io/", session=session
-)
-tutorials_docs_parser = DocParser(
-    api=tutorials_discourse_api,
-    category_id=16,
-    index_topic_id=1289,
-    url_prefix=url_prefix,
-)
-tutorials_docs = DiscourseDocs(
-    parser=tutorials_docs_parser,
+tutorials_docs = Tutorials(
+    parser=TutorialParser(
+        api=DiscourseAPI(
+            base_url="https://discourse.maas.io",
+            session=session,
+        ),
+        index_topic_id=1289,
+        url_prefix=url_prefix,
+    ),
     document_template="/tutorials/tutorial.html",
     url_prefix=url_prefix,
     blueprint_name="tutorials",

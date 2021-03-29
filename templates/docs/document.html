@@ -4,6 +4,25 @@
 {% block content_class %}l-docs-wrapper{% endblock %}
 {% block page_title %}| {{ document.title }} {% endblock %}
 
+{% macro create_navigation(nav_items) %}
+  <ul>
+    {% for element in nav_items %}
+    <li>
+      {% if element.navlink_href %}
+        <a href="{{ element.navlink_href }}"
+          {% if request.path == element.navlink_href %}aria-current="page"{% endif %}
+        >{{ element.navlink_text }}</a>
+      {% else %}
+        <strong>{{ element.navlink_text }}</strong>
+      {% endif %}
+
+      {% if element.children %}
+        {{ create_navigation(element.children) }}
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+{% endmacro %}
 
 {% block content %}
   <section id="search-docs" class="p-strip--image is-shallow" style="background-image: url('https://assets.ubuntu.com/v1/e54487e2-maas-docs-suru.png')">
@@ -15,43 +34,54 @@
       </form>
     </div>
   </section>
-  <div class="l-docs">
-    <aside class="l-docs-sidebar" id="navigation">
-      <i class="p-sidenav__toggle p-icon--menu u-hide u-show--small"></i>
-      <nav class="p-sidenav__body u-hide--small">
-        {{ navigation | safe }}
-      </nav>
-    </aside>
-    <main class="l-docs-content" id="main-content">
-      <div class="p-strip--light is-shallow l-docs-title">
-        <div class="l-docs-row row">
-          <h1 class="u-no-margin--bottom l-docs-title__heading">{{ document.title }}</h1>
-        </div>
-      </div>
 
-      <div class="p-strip is-shallow">
-        <div class="l-docs-row row">
-          {{ document.body_html | safe }}
-        </div>
-      </div>
+  <section class="p-strip u-extra-space">
+    <div class="row">
+      <aside class="col-3">
+        {% if versions | length > 1 %}
+        <label for="version-select" class="u-hide">Version</label>
+        <select name="version-select" id="version-select" onChange="window.location.href=this.value">
+        {% for version in versions %}
+          {% set active = docs_version == version['path'] %}
+          <option value="{{ version_paths[version['path']] }}"{% if active %} selected{% endif %}>Version {{ version['version'] }}</option>
+        {% endfor %}
+        <select>
+        {% endif %}
 
-      <div class="p-strip is-shallow u-no-padding--bottom">
-        <div class="l-docs-row row">
-          <hr />
-          <i>Last updated {{ document.updated }}.</i>
-        </div>
-      </div>
-      <div class="p-strip is-shallow u-no-padding--bottom u-sticky--bottom">
-        <div class="l-docs-row row">
-          <div class="p-notification--information">
-            <p class="p-notification__response">
-              <a href="{{ forum_url }}{{ document.topic_path }}">Help improve this document in the forum</a>.
-            </p>
+        <nav data-js="navigation" class="p-side-navigation--raw-html" id="{{ navigation['path'] or 'default' }}">
+          <a href="#{{ navigation['path'] or 'default' }}" class="p-side-navigation__toggle js-drawer-toggle" aria-controls="{{ navigation['path'] or 'default' }}">
+            Toggle side navigation
+          </a>
+          <div class="p-side-navigation__overlay js-drawer-toggle" aria-controls="{{ navigation['path'] or 'default' }}"></div>
+          <div class="p-side-navigation__drawer">
+            <div class="p-side-navigation__drawer-header">
+              <a href="#" class="p-side-navigation__toggle--in-drawer js-drawer-toggle" aria-controls="{{ navigation['path'] or 'default' }}">
+                Toggle side navigation
+              </a>
+            </div>
+            {% for nav_group in navigation.nav_items %}
+              {% if nav_group.navlink_text %}
+              <h3>{{ nav_group.navlink_text }}</h3>
+              {% endif %}
+              {{ create_navigation(nav_group.children) }}
+            {% endfor %}
           </div>
+        </nav>
+      </aside>
+      <main class="col-9" id="main-content">
+        <h1>{{ document.title }}</h1>
+        {{ document.body_html | safe }}
+        <hr />
+        <p><i>Last updated {{ document.updated }}.</i></p>
+        <div class="p-notification--information">
+          <p class="p-notification__response">
+            <a href="{{ forum_url }}{{ document.topic_path }}">Help improve this document in the forum</a>.
+          </p>
         </div>
-      </div>
-    </main>
-  </div>
+      </main>
+    </div>
+  </section>
+
   <script src="/static/js/highlight.pack.js"></script>
   <script>
     // Set up highlightjs
